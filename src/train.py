@@ -16,7 +16,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 
 import numpy as np
-import joblib
 
 
 # -------------------------------------
@@ -80,9 +79,18 @@ def train_model():
     print("✅ SMOTE applied to training set only")
 
     models = {
-        "LogisticRegression": LogisticRegression(max_iter=1000),
-        "RandomForest": RandomForestClassifier(n_estimators=100),
-        "XGBoost": xgb.XGBClassifier(eval_metric="logloss")
+        "LogisticRegression": LogisticRegression(max_iter=1000, random_state=42),
+        "RandomForest": RandomForestClassifier(
+            n_estimators=200,
+            random_state=42,
+            n_jobs=-1
+        ),
+        "XGBoost": xgb.XGBClassifier(
+            eval_metric="logloss",
+            random_state=42,
+            n_estimators=200,
+            n_jobs=-1
+        )
     }
 
     best_model_name = None
@@ -113,18 +121,22 @@ def train_model():
             recall = recall_score(y_test, custom_preds)
             f1 = f1_score(y_test, custom_preds)
 
-            # -------- Log Metrics --------
-            mlflow.log_param("model", name)
+            # -------- Log Everything --------
+            mlflow.log_param("model_name", name)
             mlflow.log_metric("roc_auc", roc_auc)
             mlflow.log_metric("optimal_threshold", optimal_threshold)
             mlflow.log_metric("custom_precision", precision)
             mlflow.log_metric("custom_recall", recall)
             mlflow.log_metric("custom_f1", f1)
 
+            # Log model with signature + input example
+            input_example = X_train.iloc[:1]
+
             mlflow.sklearn.log_model(
                 model,
                 name="model",
-                registered_model_name="FraudDetectionModel"
+                registered_model_name="FraudDetectionModel",
+                input_example=input_example
             )
 
             print(f"✅ {name}")
@@ -141,10 +153,6 @@ def train_model():
                 best_threshold = optimal_threshold
 
     print(f"\n🏆 Best Model: {best_model_name} (ROC-AUC: {best_roc_auc:.4f})")
-
-    # Save final production model
-    joblib.dump(best_model_object, "production_model.pkl")
-    print("💾 Production model saved as production_model.pkl")
 
     PERFORMANCE_THRESHOLD = 0.95
 
@@ -170,12 +178,16 @@ def train_model():
                 version=best_version
             )
 
-            # -------- Save threshold for API --------
-            with open("production_threshold.txt", "w") as f:
-                f.write(str(best_threshold))
+            # Store threshold inside MLflow model tags
+            client.set_model_version_tag(
+                name="FraudDetectionModel",
+                version=best_version,
+                key="production_threshold",
+                value=str(best_threshold)
+            )
 
             print(f"🚀 Model version {best_version} set as @production")
-            print(f"🚀 Production threshold saved: {best_threshold:.6f}")
+            print(f"🚀 Production threshold stored in registry")
 
         else:
             print("⚠ Could not determine best model version")
