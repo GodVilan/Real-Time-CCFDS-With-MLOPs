@@ -15,9 +15,6 @@ COPY . .
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-# Train the model
-RUN python src/train.py
-
 # Expose port
 EXPOSE 8000
 

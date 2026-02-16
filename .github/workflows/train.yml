@@ -1,0 +1,68 @@
+name: Train Model Pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ----------------------------
+      # Download Kaggle Dataset
+      # ----------------------------
+      - name: Download Kaggle Dataset
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          mkdir -p ~/.kaggle
+          echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
+          pip install kaggle
+          kaggle datasets download -d mlg-ulb/creditcardfraud -p data/raw --unzip
+
+      # ----------------------------
+      # Preprocess
+      # ----------------------------
+      - name: Run Data Preprocessing
+        run: |
+          python src/data_preprocessing.py
+
+      # ----------------------------
+      # Train
+      # ----------------------------
+      - name: Train Model
+        run: |
+          python src/train.py
+
+      # ----------------------------
+      # Upload MLflow Artifacts
+      # ----------------------------
+      - name: Upload MLflow Database
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlflow-db
+          path: mlflow.db
+
+      - name: Upload MLruns Directory
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlruns
+          path: mlruns
