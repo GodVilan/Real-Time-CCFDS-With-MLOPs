@@ -1,0 +1,10 @@
+.venv/
+mlruns/
+mlflow.db
+*.log
+__pycache__/
+data/raw/
+data/processed/
+*.csv
+*.pkl
+
