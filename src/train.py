@@ -17,12 +17,20 @@ from sklearn.ensemble import RandomForestClassifier
 
 import numpy as np
 
+import os
+import mlflow
 
 # -------------------------------------
-# MLflow Configuration (SQLite backend)
+# MLflow Configuration
 # -------------------------------------
-mlflow.set_tracking_uri("sqlite:///mlflow.db")
-mlflow.set_registry_uri("sqlite:///mlflow.db")
+MLFLOW_TRACKING_URI = os.getenv(
+    "MLFLOW_TRACKING_URI",
+    "http://18.118.48.132:5000"
+)
+
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+mlflow.set_registry_uri(MLFLOW_TRACKING_URI)
+
 mlflow.set_experiment("Credit Card Fraud Detection")
 
 

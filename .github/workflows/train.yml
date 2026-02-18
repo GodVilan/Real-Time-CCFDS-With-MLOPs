@@ -49,6 +49,8 @@ jobs:
       # Train
       # ----------------------------
       - name: Train Model
+        env:
+          MLFLOW_TRACKING_URI: http://18.118.48.132:5000
         run: |
           python src/train.py
 
