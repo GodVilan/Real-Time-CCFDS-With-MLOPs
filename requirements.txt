@@ -9,3 +9,4 @@ imbalanced-learn
 evidently
 slowapi
 python-multipart
+boto3
