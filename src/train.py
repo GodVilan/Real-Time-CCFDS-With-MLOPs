@@ -19,14 +19,13 @@ import numpy as np
 
 import os
 import mlflow
+# from dotenv import load_dotenv
+# load_dotenv()
 
 # -------------------------------------
 # MLflow Configuration
 # -------------------------------------
-MLFLOW_TRACKING_URI = os.getenv(
-    "MLFLOW_TRACKING_URI",
-    "http://18.118.48.132:5000"
-)
+MLFLOW_TRACKING_URI = os.environ["MLFLOW_TRACKING_URI"]
 
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 mlflow.set_registry_uri(MLFLOW_TRACKING_URI)

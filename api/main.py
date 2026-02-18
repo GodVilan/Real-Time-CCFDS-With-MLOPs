@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, HTTPException, Security, UploadFile, File, Request
 from fastapi.security import APIKeyHeader
 from slowapi import Limiter
@@ -10,13 +11,16 @@ import pandas as pd
 import numpy as np
 import json
 from datetime import datetime
-
+# from dotenv import load_dotenv
+# load_dotenv()
 
 # --------------------------
 # MLflow Configuration
 # --------------------------
-mlflow.set_tracking_uri("sqlite:///mlflow.db")
-mlflow.set_registry_uri("sqlite:///mlflow.db")
+MLFLOW_TRACKING_URI = os.environ["MLFLOW_TRACKING_URI"]
+
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+mlflow.set_registry_uri(MLFLOW_TRACKING_URI)
 
 MODEL_NAME = "FraudDetectionModel"
 MODEL_URI = f"models:/{MODEL_NAME}@production"
