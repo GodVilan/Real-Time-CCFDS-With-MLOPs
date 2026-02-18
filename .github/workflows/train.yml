@@ -50,7 +50,10 @@ jobs:
       # ----------------------------
       - name: Train Model
         env:
-          MLFLOW_TRACKING_URI: http://18.118.48.132:5000
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-2
         run: |
           python src/train.py
 
