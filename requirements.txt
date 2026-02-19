@@ -11,3 +11,4 @@ slowapi
 python-multipart
 boto3
 dotenv
+evidently

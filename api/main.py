@@ -1,76 +1,78 @@
 import os
-from fastapi import FastAPI, HTTPException, Security, UploadFile, File, Request
+import json
+import mlflow
+import mlflow.sklearn
+import pandas as pd
+from datetime import datetime
+from fastapi import FastAPI, HTTPException, Security, Request
 from fastapi.security import APIKeyHeader
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.middleware import SlowAPIMiddleware
 from pydantic import BaseModel
-import mlflow
-import mlflow.sklearn
-import pandas as pd
-import numpy as np
-import json
-from datetime import datetime
-# from dotenv import load_dotenv
-# load_dotenv()
 
-# --------------------------
+# --------------------------------------------------
 # MLflow Configuration
-# --------------------------
-MLFLOW_TRACKING_URI = os.environ["MLFLOW_TRACKING_URI"]
+# --------------------------------------------------
+
+MLFLOW_TRACKING_URI = os.getenv(
+    "MLFLOW_TRACKING_URI",
+    "http://localhost:5000"
+)
 
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 mlflow.set_registry_uri(MLFLOW_TRACKING_URI)
 
 MODEL_NAME = "FraudDetectionModel"
-MODEL_URI = f"models:/{MODEL_NAME}@production"
+MODEL_ALIAS = "production"
 
 print("🚀 Loading production model from MLflow registry...")
+MODEL_URI = f"models:/{MODEL_NAME}@{MODEL_ALIAS}"
 model = mlflow.sklearn.load_model(MODEL_URI)
 
-# --------------------------
-# Load Production Threshold from MLflow Tag
-# --------------------------
-client = mlflow.MlflowClient()
+print("✅ Model loaded successfully.")
 
-try:
-    version_info = client.get_model_version_by_alias(
-        MODEL_NAME,
-        "production"
-    )
+# --------------------------------------------------
+# Load Production Threshold from Registry
+# --------------------------------------------------
 
-    threshold_tag = client.get_model_version(
-        MODEL_NAME,
-        version_info.version
-    ).tags.get("production_threshold")
-
-    THRESHOLD = float(threshold_tag) if threshold_tag else 0.5
-
-    print(f"✅ Loaded production threshold: {THRESHOLD}")
-
-except Exception as e:
-    print("⚠ Could not load threshold from registry. Using default 0.5")
-    THRESHOLD = 0.5
+def load_production_threshold():
+    try:
+        client = mlflow.tracking.MlflowClient()
+        versions = client.get_latest_versions(MODEL_NAME)
+        for v in versions:
+            if v.current_stage == "Production":
+                threshold = v.tags.get("optimal_threshold")
+                if threshold:
+                    return float(threshold)
+        return 0.5
+    except Exception as e:
+        print("Threshold load error:", e)
+        return 0.5
 
 
-# --------------------------
+THRESHOLD = load_production_threshold()
+print(f"🎯 Production Threshold: {THRESHOLD}")
+
+# --------------------------------------------------
 # FastAPI App
-# --------------------------
+# --------------------------------------------------
+
 app = FastAPI(title="Credit Card Fraud Detection API")
 
-
-# --------------------------
+# --------------------------------------------------
 # Rate Limiting
-# --------------------------
+# --------------------------------------------------
+
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
 
+# --------------------------------------------------
+# API Key Security
+# --------------------------------------------------
 
-# --------------------------
-# API Key Authentication
-# --------------------------
-API_KEY = "supersecretkey"
+API_KEY = os.getenv("API_KEY", "supersecretkey")
 api_key_header = APIKeyHeader(name="X-API-Key")
 
 
@@ -79,62 +81,49 @@ def verify_api_key(api_key: str = Security(api_key_header)):
         raise HTTPException(status_code=403, detail="Unauthorized")
 
 
-# --------------------------
-# Logging Function
-# --------------------------
-def log_prediction(features, pred, prob):
-    log = {
+# --------------------------------------------------
+# Prediction Logging
+# --------------------------------------------------
+
+LOG_FILE = "prediction_logs.json"
+
+
+def log_prediction(input_data: dict, prediction: int, probability: float):
+    log_entry = {
         "timestamp": datetime.utcnow().isoformat(),
-        "prediction": int(pred),
-        "probability": float(prob),
-        "features": features
+        "input": input_data,
+        "prediction": int(prediction),
+        "probability": float(probability)
     }
 
-    with open("predictions.log", "a") as f:
-        f.write(json.dumps(log) + "\n")
+    try:
+        with open(LOG_FILE, "a") as f:
+            f.write(json.dumps(log_entry) + "\n")
+    except Exception as e:
+        print("Logging error:", e)
 
 
-# --------------------------
+# --------------------------------------------------
 # Schemas
-# --------------------------
+# --------------------------------------------------
+
 class Transaction(BaseModel):
     features: list[float]
 
 
-class ThresholdUpdate(BaseModel):
-    threshold: float
-
-
-# --------------------------
+# --------------------------------------------------
 # Health Check
-# --------------------------
+# --------------------------------------------------
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 
-# --------------------------
-# Update Threshold (Runtime Only)
-# --------------------------
-@app.post("/set-threshold")
-def set_threshold(payload: ThresholdUpdate):
-    global THRESHOLD
+# --------------------------------------------------
+# Single Prediction Endpoint
+# --------------------------------------------------
 
-    if not 0 <= payload.threshold <= 1:
-        raise HTTPException(status_code=400,
-                            detail="Threshold must be between 0 and 1")
-
-    THRESHOLD = payload.threshold
-
-    return {
-        "message": "Threshold updated",
-        "new_threshold": THRESHOLD
-    }
-
-
-# --------------------------
-# Single Prediction
-# --------------------------
 @app.post("/predict")
 @limiter.limit("10/minute")
 def predict(
@@ -146,48 +135,73 @@ def predict(
     verify_api_key(api_key)
 
     if len(transaction.features) != 30:
-        raise HTTPException(status_code=400,
-                            detail="Expected 30 features")
+        raise HTTPException(status_code=400, detail="Expected 30 features")
 
-    feature_names = model.feature_names_in_
-    data = pd.DataFrame([transaction.features], columns=feature_names)
+    try:
+        feature_names = model.feature_names_in_
+        input_df = pd.DataFrame([transaction.features], columns=feature_names)
 
-    prob = float(model.predict_proba(data)[0][1])
-    pred = 1 if prob >= THRESHOLD else 0
+        prob = float(model.predict_proba(input_df)[0][1])
+        prediction = 1 if prob >= THRESHOLD else 0
 
-    log_prediction(transaction.features, pred, prob)
+        log_prediction(
+            input_data={"features": transaction.features},
+            prediction=prediction,
+            probability=prob
+        )
 
-    return {
-        "fraud": pred,
-        "fraud_probability": prob,
-        "fraud_probability_percent": round(prob * 100, 6),
-        "decision_threshold": THRESHOLD
-    }
+        return {
+            "fraud": prediction,
+            "fraud_probability": prob,
+            "fraud_probability_percent": round(prob * 100, 4),
+            "decision_threshold": THRESHOLD
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-# --------------------------
-# Batch Prediction
-# --------------------------
+# --------------------------------------------------
+# Batch Prediction Endpoint
+# --------------------------------------------------
+
 @app.post("/predict-batch")
 @limiter.limit("5/minute")
 async def predict_batch(
     request: Request,
-    file: UploadFile = File(...),
+    transactions: list[Transaction],
     api_key: str = Security(api_key_header)
 ):
 
     verify_api_key(api_key)
 
-    df = pd.read_csv(file.file)
+    try:
+        data = [t.features for t in transactions]
 
-    if df.shape[1] != 30:
-        raise HTTPException(status_code=400,
-                            detail="CSV must contain exactly 30 columns")
+        if any(len(row) != 30 for row in data):
+            raise HTTPException(status_code=400, detail="Each transaction must have 30 features")
 
-    probs = model.predict_proba(df.values)[:, 1]
-    preds = (probs >= THRESHOLD).astype(int)
+        feature_names = model.feature_names_in_
+        input_df = pd.DataFrame(data, columns=feature_names)
 
-    df["fraud"] = preds
-    df["fraud_probability"] = probs
+        probs = model.predict_proba(input_df)[:, 1]
+        preds = [1 if p >= THRESHOLD else 0 for p in probs]
 
-    return df.head(10).to_dict(orient="records")
+        results = []
+
+        for i in range(len(data)):
+            log_prediction(
+                input_data={"features": data[i]},
+                prediction=preds[i],
+                probability=float(probs[i])
+            )
+
+            results.append({
+                "fraud": preds[i],
+                "fraud_probability": float(probs[i])
+            })
+
+        return results
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
