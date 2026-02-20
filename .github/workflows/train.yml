@@ -71,7 +71,7 @@ jobs:
 
           s3.upload_file(
               "data/processed/processed_data.csv",
-              "your-bucket-name",
+              "mlflow-artifacts-srikanth",
               "reference/processed_data.csv"
           )
 
