@@ -10,6 +10,12 @@ jobs:
   train:
     runs-on: ubuntu-latest
 
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-2
+      MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -49,13 +55,28 @@ jobs:
       # Train
       # ----------------------------
       - name: Train Model
-        env:
-          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-2
         run: |
           python src/train.py
+
+      # ----------------------------
+      # Upload Reference Dataset to S3
+      # ----------------------------
+      - name: Upload Reference Dataset to S3
+        run: |
+          pip install boto3
+          python - <<EOF
+          import boto3
+
+          s3 = boto3.client("s3")
+
+          s3.upload_file(
+              "data/processed/processed_data.csv",
+              "your-bucket-name",
+              "reference/processed_data.csv"
+          )
+
+          print("Reference dataset uploaded to S3.")
+          EOF
 
       # ----------------------------
       # Upload MLflow Artifacts
