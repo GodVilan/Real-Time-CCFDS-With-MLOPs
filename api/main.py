@@ -23,9 +23,8 @@ THRESHOLD_FILE = "production_threshold.txt"
 # Load Model
 # -----------------------------
 model = mlflow.pyfunc.load_model(
-    f"models:/{MODEL_NAME}@{MODEL_STAGE}"
+    "models:/FraudDetectionModel@production"
 )
-
 # -----------------------------
 # FastAPI
 # -----------------------------
