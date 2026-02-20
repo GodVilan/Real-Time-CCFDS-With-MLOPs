@@ -19,9 +19,9 @@ MODEL_STAGE = "Production"
 LOG_FILE = "prediction_logs.json"
 THRESHOLD_FILE = "production_threshold.txt"
 
-# -----------------------------
+# ----------------------------
 # Load Model
-# -----------------------------
+# ----------------------------
 model = mlflow.pyfunc.load_model(
     "models:/FraudDetectionModel@production"
 )
