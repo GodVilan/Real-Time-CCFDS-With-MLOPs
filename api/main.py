@@ -23,7 +23,7 @@ THRESHOLD_FILE = "production_threshold.txt"
 # Load Model
 # -----------------------------
 model = mlflow.pyfunc.load_model(
-    f"models:/{MODEL_NAME}/{MODEL_STAGE}"
+    f"models:/{MODEL_NAME}@{MODEL_STAGE}"
 )
 
 # -----------------------------
