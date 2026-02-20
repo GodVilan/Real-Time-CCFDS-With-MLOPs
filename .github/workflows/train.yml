@@ -27,12 +27,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install -r requirements.txt
+          pip install kaggle boto3
 
-      # ----------------------------
-      # Download Kaggle Dataset
-      # ----------------------------
+      # Download Kaggle dataset
       - name: Download Kaggle Dataset
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
@@ -41,29 +40,16 @@ jobs:
           mkdir -p ~/.kaggle
           echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
-          pip install kaggle
           kaggle datasets download -d mlg-ulb/creditcardfraud -p data/raw --unzip
 
-      # ----------------------------
       # Preprocess
-      # ----------------------------
       - name: Run Data Preprocessing
         run: |
           python src/data_preprocessing.py
 
-      # ----------------------------
-      # Train
-      # ----------------------------
-      - name: Train Model
-        run: |
-          python src/train.py
-
-      # ----------------------------
-      # Upload Reference Dataset to S3
-      # ----------------------------
+      # Upload reference dataset to S3
       - name: Upload Reference Dataset to S3
         run: |
-          pip install boto3
           python - <<EOF
           import boto3
 
@@ -78,17 +64,7 @@ jobs:
           print("Reference dataset uploaded to S3.")
           EOF
 
-      # ----------------------------
-      # Upload MLflow Artifacts
-      # ----------------------------
-      - name: Upload MLflow Database
-        uses: actions/upload-artifact@v4
-        with:
-          name: mlflow-db
-          path: mlflow.db
-
-      - name: Upload MLruns Directory
-        uses: actions/upload-artifact@v4
-        with:
-          name: mlruns
-          path: mlruns
+      # Train
+      - name: Train Model
+        run: |
+          python src/train.py
