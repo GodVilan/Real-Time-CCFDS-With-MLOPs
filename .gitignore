@@ -7,4 +7,4 @@ data/raw/
 data/processed/
 *.csv
 *.pkl
-
+.env

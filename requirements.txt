@@ -12,3 +12,4 @@ python-multipart
 boto3
 dotenv
 evidently
+psycopg2-binary
