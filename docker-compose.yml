@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    container_name: mlflow-server
+    restart: always
+    env_file:
+      - .env
+    environment:
+      BACKEND_STORE_URI: ${BACKEND_STORE_URI}
+      ARTIFACT_ROOT: ${ARTIFACT_ROOT}
+    networks:
+      - ml-network
+
+  fraud-api:
+    image: ghcr.io/godvilan/real-time-ccfds-with-mlops:latest
+    container_name: fraud-api
+    restart: always
+    env_file:
+      - .env
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    depends_on:
+      - mlflow
+    networks:
+      - ml-network
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: nginx
+    restart: always
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - fraud-api
+    networks:
+      - ml-network
+
+networks:
+  ml-network:
+    driver: bridge
