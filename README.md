@@ -117,8 +117,8 @@ Response:
 POST /predict
 
 Headers:
-X-API-Key: <your-api-key>
-Content-Type: application/json
+- X-API-Key: <your-api-key>
+- Content-Type: application/json
 
 Request:
 {
@@ -150,23 +150,32 @@ POST /predict-batch
 ## 🐳 Local Development Setup
 
 Clone Repository:
+```bash
 git clone https://github.com/GodVilan/Real-Time-CCFDS-With-MLOPs.git
 cd Real-Time-CCFDS-With-MLOPs
+```
 
 Start Services:
+```bash
 docker compose up -d --build
+```
 
 ---
 
 ## 🧪 Run Training Locally
 
+```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+```
 
+```bash
 export MLFLOW_TRACKING_URI=http://localhost:5000
-
+```
+```bash
 python3 src/train.py
+```
 
 ---
 
