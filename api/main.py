@@ -15,10 +15,7 @@ from pydantic import BaseModel
 # MLflow Configuration
 # --------------------------------------------------
 
-MLFLOW_TRACKING_URI = os.getenv(
-    "MLFLOW_TRACKING_URI",
-    "http://localhost:5000"
-)
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI")
 
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 mlflow.set_registry_uri(MLFLOW_TRACKING_URI)
@@ -72,7 +69,7 @@ app.add_middleware(SlowAPIMiddleware)
 # API Key Security
 # --------------------------------------------------
 
-API_KEY = os.getenv("API_KEY", "supersecretkey")
+API_KEY = os.getenv("API_KEY")
 api_key_header = APIKeyHeader(name="X-API-Key")
 
 
