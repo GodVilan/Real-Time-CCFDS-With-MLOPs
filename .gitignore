@@ -1,12 +1,37 @@
+# Logs
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
 .venv/
+venv/
+
+# Environment variables
+.env
+.env.*
+
+# ML artifacts
 mlruns/
 mlflow.db
-*.log
-__pycache__/
+mlflow_data/
+
+# Data
 data/raw/
 data/processed/
 *.csv
 *.pkl
-.env
-mlflow_data/
 
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+*.tar
+
+# IDE
+.vscode/
+.idea/
