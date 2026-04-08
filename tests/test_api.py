@@ -5,39 +5,50 @@ These tests validate request/response schemas and input validation
 without requiring a live MLflow connection or trained model.
 """
 
+import sys
 import pytest
 from unittest.mock import patch, MagicMock
 import numpy as np
-
+import os
 
 # --------------------------------------------------
-# Mock MLflow before importing the app
+# Set env vars BEFORE any imports touch api.main
 # --------------------------------------------------
+os.environ.setdefault("MLFLOW_TRACKING_URI", "http://localhost:5000")
+os.environ.setdefault("API_KEY", "test-api-key")
 
+# --------------------------------------------------
+# Mock MLflow at module level before importing app
+# --------------------------------------------------
 mock_model = MagicMock()
 mock_model.feature_names_in_ = [f"V{i}" for i in range(1, 29)] + ["Time", "Amount"]
 mock_model.predict_proba = MagicMock(
     return_value=np.array([[0.95, 0.05]])
 )
 
+# Patch mlflow before api.main gets imported
+mock_mlflow = MagicMock()
+mock_mlflow.sklearn.load_model.return_value = mock_model
+mock_mlflow.tracking.MlflowClient.return_value.get_model_version_by_alias.return_value.tags = {
+    "production_threshold": "0.5"
+}
+sys.modules["mlflow"] = mock_mlflow
+sys.modules["mlflow.sklearn"] = mock_mlflow.sklearn
+sys.modules["mlflow.tracking"] = mock_mlflow.tracking
+
+from api.main import app  # noqa: E402
+
+# Patch the module-level globals that were set during import
+import api.main as api_module  # noqa: E402
+api_module.model = mock_model
+api_module.THRESHOLD = 0.5
+
 
 @pytest.fixture
 def client():
-    """Create a test client with mocked MLflow dependencies."""
-    import os
-    os.environ.setdefault("MLFLOW_TRACKING_URI", "http://localhost:5000")
-    os.environ.setdefault("API_KEY", "test-api-key")
-
-    with patch("mlflow.set_tracking_uri"), \
-         patch("mlflow.set_registry_uri"), \
-         patch("mlflow.sklearn.load_model", return_value=mock_model), \
-         patch("api.main.load_production_threshold", return_value=0.5), \
-         patch("api.main.THRESHOLD", 0.5), \
-         patch("api.main.model", mock_model):
-
-        from fastapi.testclient import TestClient
-        from api.main import app
-        yield TestClient(app)
+    """Create a test client."""
+    from fastapi.testclient import TestClient
+    yield TestClient(app)
 
 
 def test_health_check(client):

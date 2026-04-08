@@ -1,11 +1,12 @@
 
 # Real-Time Credit Card Fraud Detection System with MLOps
 
+[![CI Checks](https://github.com/GodVilan/Real-Time-CCFDS-With-MLOPs/actions/workflows/ci.yml/badge.svg)](https://github.com/GodVilan/Real-Time-CCFDS-With-MLOPs/actions/workflows/ci.yml)
+[![Train Pipeline](https://github.com/GodVilan/Real-Time-CCFDS-With-MLOPs/actions/workflows/train.yml/badge.svg)](https://github.com/GodVilan/Real-Time-CCFDS-With-MLOPs/actions/workflows/train.yml)
+[![Docker Build](https://github.com/GodVilan/Real-Time-CCFDS-With-MLOPs/actions/workflows/docker-ghcr.yml/badge.svg)](https://github.com/GodVilan/Real-Time-CCFDS-With-MLOPs/actions/workflows/docker-ghcr.yml)
+![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![Docker](https://img.shields.io/badge/Docker-Containerized-blue)
 ![MLflow](https://img.shields.io/badge/MLflow-Model%20Registry-orange)
-![AWS](https://img.shields.io/badge/AWS-Deployed-yellow)
-![CI/CD](https://img.shields.io/badge/GitHub%20Actions-CI/CD-success)
-![Python](https://img.shields.io/badge/Python-3.11-blue)
 
 An end-to-end **production-grade Machine Learning system** for real-time credit card fraud detection featuring automated training pipelines, model governance via MLflow, CI/CD automation with GitHub Actions, and secure cloud deployment on AWS.
 
