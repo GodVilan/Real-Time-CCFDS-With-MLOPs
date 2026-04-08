@@ -3,7 +3,7 @@ import json
 import mlflow
 import mlflow.sklearn
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException, Security, Request
 from fastapi.security import APIKeyHeader
 from slowapi import Limiter
@@ -36,12 +36,10 @@ print("✅ Model loaded successfully.")
 def load_production_threshold():
     try:
         client = mlflow.tracking.MlflowClient()
-        versions = client.get_latest_versions(MODEL_NAME)
-        for v in versions:
-            if v.current_stage == "Production":
-                threshold = v.tags.get("optimal_threshold")
-                if threshold:
-                    return float(threshold)
+        model_version = client.get_model_version_by_alias(MODEL_NAME, "production")
+        threshold = model_version.tags.get("production_threshold")
+        if threshold:
+            return float(threshold)
         return 0.5
     except Exception as e:
         print("Threshold load error:", e)
@@ -87,7 +85,7 @@ LOG_FILE = "prediction_logs.json"
 
 def log_prediction(input_data: dict, prediction: int, probability: float):
     log_entry = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "input": input_data,
         "prediction": int(prediction),
         "probability": float(probability)

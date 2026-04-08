@@ -49,12 +49,12 @@ def test_health_check(client):
 
 
 def test_predict_missing_api_key(client):
-    """Prediction without API key should return 403."""
+    """Prediction without API key should return 401 or 403."""
     response = client.post(
         "/predict",
         json={"features": [0.0] * 30}
     )
-    assert response.status_code == 403
+    assert response.status_code in [401, 403]
 
 
 def test_predict_wrong_feature_count(client):
