@@ -10,6 +10,5 @@ evidently
 slowapi
 python-multipart
 boto3
-dotenv
-evidently
+python-dotenv
 psycopg2-binary
