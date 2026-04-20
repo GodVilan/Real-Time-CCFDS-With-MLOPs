@@ -22,6 +22,9 @@ mlflow_artifacts/
 mlflow-artifacts/
 models/
 
+# prediction logs
+*.json
+
 # Data
 data/raw/
 data/processed/

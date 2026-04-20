@@ -11,8 +11,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      MLFLOW_TRACKING_URI: http://localhost:5000
-      API_KEY: test-api-key
+      MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+      API_KEY: ${{ secrets.API_KEY }}
 
     steps:
       - name: Checkout code
