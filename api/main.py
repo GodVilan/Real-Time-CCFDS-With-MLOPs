@@ -34,16 +34,22 @@ print("✅ Model loaded successfully.")
 # --------------------------------------------------
 # Load the scaler for input preprocessing
 # --------------------------------------------------
-client = mlflow.tracking.MlflowClient()
-model_version = client.get_model_version_by_alias(MODEL_NAME, MODEL_ALIAS)
-run_id = model_version.run_id
+# Replace the scaler loading block with this
+scaler = None
+try:
+    client = mlflow.tracking.MlflowClient()
+    model_version = client.get_model_version_by_alias(MODEL_NAME, "production")
+    run_id = model_version.run_id
 
-scaler_path = mlflow.artifacts.download_artifacts(
-    run_id=run_id,
-    artifact_path="scaler/scaler.pkl"
-)
-scaler = joblib.load(scaler_path)
-
+    scaler_path = mlflow.artifacts.download_artifacts(
+        run_id=run_id,
+        artifact_path="scaler/scaler.pkl"
+    )
+    import joblib
+    scaler = joblib.load(scaler_path)
+    print("✅ Scaler loaded successfully.")
+except Exception as e:
+    print(f"⚠ Scaler not found in this model version, skipping: {e}")
 # --------------------------------------------------
 # Load Production Threshold from Registry
 # --------------------------------------------------
@@ -154,7 +160,8 @@ def predict(
         # ------------------------------
         # Apply scaling before prediction
         # ------------------------------
-        input_df = pd.DataFrame(scaler.transform(input_df), columns=feature_names)
+        if scaler:
+            input_df = pd.DataFrame(scaler.transform(input_df), columns=feature_names)
 
         prob = float(model.predict_proba(input_df)[0][1])
         prediction = 1 if prob >= THRESHOLD else 0
@@ -201,7 +208,8 @@ async def predict_batch(
         # -------------------------------
         # Apply scaling before prediction
         # -------------------------------
-        input_df = pd.DataFrame(scaler.transform(input_df), columns=feature_names)
+        if scaler:
+            input_df = pd.DataFrame(scaler.transform(input_df), columns=feature_names)
 
         probs = model.predict_proba(input_df)[:, 1]
         preds = [1 if p >= THRESHOLD else 0 for p in probs]
