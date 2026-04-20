@@ -26,6 +26,10 @@ mock_model.predict_proba = MagicMock(
     return_value=np.array([[0.95, 0.05]])
 )
 
+# Mock scaler that simply returns zeros (or any fixed value) for testing
+mock_scaler = MagicMock()
+mock_scaler.transform = MagicMock(return_value=np.zeros((1, 30)))
+
 # Patch mlflow before api.main gets imported
 mock_mlflow = MagicMock()
 mock_mlflow.sklearn.load_model.return_value = mock_model
@@ -42,6 +46,7 @@ from api.main import app  # noqa: E402
 import api.main as api_module  # noqa: E402
 api_module.model = mock_model
 api_module.THRESHOLD = 0.5
+api_module.scaler = mock_scaler 
 
 
 @pytest.fixture
