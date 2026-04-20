@@ -18,7 +18,7 @@ venv/
 mlruns/
 mlflow.db
 mlflow_data/
-mlflow_artifacts/
+mlflow-artifacts/
 models/
 
 # Data
