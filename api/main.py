@@ -10,6 +10,8 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.middleware import SlowAPIMiddleware
 from pydantic import BaseModel
+import joblib
+import tempfile
 
 # --------------------------------------------------
 # MLflow Configuration
@@ -28,6 +30,19 @@ MODEL_URI = f"models:/{MODEL_NAME}@{MODEL_ALIAS}"
 model = mlflow.sklearn.load_model(MODEL_URI)
 
 print("✅ Model loaded successfully.")
+
+# --------------------------------------------------
+# Load the scaler for input preprocessing
+# --------------------------------------------------
+client = mlflow.tracking.MlflowClient()
+model_version = client.get_model_version_by_alias(MODEL_NAME, MODEL_ALIAS)
+run_id = model_version.run_id
+
+scaler_path = mlflow.artifacts.download_artifacts(
+    run_id=run_id,
+    artifact_path="scaler/scaler.pkl"
+)
+scaler = joblib.load(scaler_path)
 
 # --------------------------------------------------
 # Load Production Threshold from Registry
@@ -136,6 +151,11 @@ def predict(
         feature_names = model.feature_names_in_
         input_df = pd.DataFrame([transaction.features], columns=feature_names)
 
+        # ------------------------------
+        # Apply scaling before prediction
+        # ------------------------------
+        input_df = pd.DataFrame(scaler.transform(input_df), columns=feature_names)
+
         prob = float(model.predict_proba(input_df)[0][1])
         prediction = 1 if prob >= THRESHOLD else 0
 
@@ -178,6 +198,10 @@ async def predict_batch(
 
         feature_names = model.feature_names_in_
         input_df = pd.DataFrame(data, columns=feature_names)
+        # -------------------------------
+        # Apply scaling before prediction
+        # -------------------------------
+        input_df = pd.DataFrame(scaler.transform(input_df), columns=feature_names)
 
         probs = model.predict_proba(input_df)[:, 1]
         preds = [1 if p >= THRESHOLD else 0 for p in probs]

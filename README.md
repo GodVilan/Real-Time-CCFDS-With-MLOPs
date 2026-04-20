@@ -368,7 +368,7 @@ Real-Time-CCFDS-With-MLOPs/
 ├── Dockerfile                     # API service container
 ├── Dockerfile.mlflow              # MLflow server container
 ├── docker-compose.yml             # Multi-service orchestration
-├── nginx.config                   # Reverse proxy configuration
+├── nginx.conf                     # Reverse proxy configuration
 ├── requirements.txt               # Python dependencies
 ├── .env.example                   # Environment variable template
 └── README.md

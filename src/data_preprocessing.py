@@ -1,6 +1,7 @@
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 import os
+import joblib
 
 
 def preprocess():
@@ -30,6 +31,12 @@ def preprocess():
     # -----------------------------
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
+
+    # -----------------------------
+    # Save the scaler for future use (e.g., in API)
+    # -----------------------------
+    os.makedirs("models", exist_ok=True)
+    joblib.dump(scaler, "models/scaler.pkl")
 
     # -----------------------------
     # Reassemble DataFrame

@@ -50,6 +50,16 @@ def find_optimal_threshold(y_true, probabilities, min_precision=0.90):
         if p >= min_precision and r > best_recall:
             best_recall = r
             optimal_threshold = t
+    
+    if best_recall == 0:
+        print(f"⚠ No threshold found with precision ≥ {min_precision}.")
+        print(f"  Max precision achievable by this model: {max(precisions):.4f}")
+        print(f"  Falling back to best F1 threshold instead.")
+
+        # Find threshold that maximizes F1 instead
+        f1_scores = (2 * precisions[:-1] * recalls[:-1]) / (precisions[:-1] + recalls[:-1] + 1e-8)
+        best_f1_idx = np.argmax(f1_scores)
+        optimal_threshold = thresholds[best_f1_idx]
 
     return optimal_threshold, best_recall
 
@@ -135,6 +145,7 @@ def train_model():
             mlflow.log_metric("custom_precision", precision)
             mlflow.log_metric("custom_recall", recall)
             mlflow.log_metric("custom_f1", f1)
+            mlflow.log_artifact("models/scaler.pkl", artifact_path="scaler")
 
             # Log model with signature + input example
             input_example = X_train.iloc[:1]
