@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --upgrade pip
 RUN pip install mlflow psycopg2-binary boto3
 
-EXPOSE 5000
+EXPOSE 5010
 
 CMD mlflow server \
     --backend-store-uri ${BACKEND_STORE_URI} \
